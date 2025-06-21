@@ -1,4 +1,4 @@
-// app.js - Ana Uygulama Mantığı
+// app.js - Ana Uygulama Mantığı (URL Düzeltmeleri Yapılmış)
 
 import { perfumeFacts, quizQuestions } from './data.js';
 import { getColorForText, showToast } from './ui.js';
@@ -40,7 +40,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveNotes = () => localStorage.setItem('perfumePersonalNotes', JSON.stringify(personalNotes));
 
     // --- SAYFA YÖNETİMİ ---
-    // DEĞİŞTİ: URL'yi # olmadan, temiz bir şekilde güncelliyoruz.
     const showPage = (pageId, fromHistory = false) => {
         if (currentPage !== 'detail-page' && !fromHistory) {
             lastPage = currentPage;
@@ -52,17 +51,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if (newPage) newPage.classList.add('active');
         
         Object.values(navButtons).forEach(button => button?.classList.remove('active'));
-        if (navButtons[pageId]) {
-            navButtons[pageId].classList.add('active');
+        const targetNavButton = navButtons[pageId] || (pageId === 'detail-page' ? navButtons[lastPage] : null);
+        if (targetNavButton) {
+            targetNavButton.classList.add('active');
         }
 
         if (!fromHistory) {
             const newPath = (pageId === 'home-page') ? '/' : `/${pageId.replace('-page', '')}`;
-            
-            if (isInitialLoad) {
-                history.replaceState({ page: pageId }, '', newPath);
-            } else {
-                history.pushState({ page: pageId }, '', newPath);
+            const currentState = history.state ? history.state.page : null;
+            if(currentState !== pageId) {
+                if (isInitialLoad) {
+                    history.replaceState({ page: pageId }, '', newPath);
+                } else {
+                    history.pushState({ page: pageId }, '', newPath);
+                }
             }
         }
         isInitialLoad = false; 
@@ -88,7 +90,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const renderDetailPage = (perfumeName) => {
         const data = parfum_veritabani[perfumeName];
-        if (!data) return;
+        if (!data) {
+            showPage('home-page');
+            return;
+        };
         showPage('detail-page');
         
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -108,7 +113,6 @@ document.addEventListener('DOMContentLoaded', () => {
         page.querySelector('#personal-note-input').value = personalNotes[perfumeName] || '';
         page.querySelector('#save-note-button').onclick = () => saveNote(perfumeName);
         page.querySelector('.share-button').onclick = () => sharePerfume(perfumeName);
-        // DEĞİŞTİ: Geri tuşu artık tarayıcı geçmişini kullanmalı
         page.querySelector('.back-button').onclick = () => history.back();
         page.querySelector('#online-search-button').onclick = () => {
             const searchQuery = encodeURIComponent(`${perfumeName} parfüm satın al`);
@@ -153,7 +157,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const backButton = document.createElement('button');
         backButton.innerHTML = '&lt; Geri';
         backButton.className = 'action-button list-detail-back-button';
-        backButton.onclick = renderMyListsPage;
+        backButton.onclick = () => {
+            isInitialLoad = true;
+            renderMyListsPage();
+            history.replaceState({ page: 'my-lists-page' }, '', '/my-lists');
+        };
         const title = document.createElement('h2');
         title.className = 'accent list-detail-title';
         title.textContent = listName;
@@ -456,11 +464,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const closeAddToListModal = () => document.getElementById('add-to-list-modal').style.display = 'none';
     
-    // DEĞİŞTİ: Paylaşım URL'sini temiz formatta oluşturuyoruz.
     const sharePerfume = (perfumeName) => {
         const url = new URL(window.location);
         url.pathname = `/perfume/${encodeURIComponent(perfumeName.replace(/ /g, '_'))}`;
-        url.hash = ''; // Eskiden kalan hash'i temizleyelim
+        url.hash = '';
         const shareData = {
             title: 'Parfüm Küratörü',
             text: `Sana harika bir koku önerim var: ${perfumeName}`,
@@ -505,19 +512,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    // DEĞİŞTİ: Paylaşım linkini kontrol ederken URL yolunu (pathname) kullanıyoruz.
     const checkForSharedLink = () => {
         const path = window.location.pathname;
         if (path.startsWith('/perfume/')) {
             const perfumeName = decodeURIComponent(path.substring('/perfume/'.length).replace(/_/g, ' '));
-            // Veritabanı yüklendi mi diye kontrol edelim
             if (Object.keys(parfum_veritabani).length > 0 && parfum_veritabani[perfumeName]) {
                 renderDetailPage(perfumeName);
                 return true;
-            } else if (Object.keys(parfum_veritabani).length === 0) {
-                // Veritabanı henüz yüklenmemişse, bu kontrolü daha sonraya erteleyebiliriz.
-                // Şimdilik sadece bir işaretçi bırakalım.
-                return 'wait_for_db';
             }
         }
         return false;
@@ -569,7 +570,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return filtered;
     };
 
-    // --- YENİ MASAÜSTÜ ÖZELLİKLERİ ---
+    // --- MASAÜSTÜ ÖZELLİKLERİ ---
     const renderWeeklyPicks = () => {
         const picksContainer = document.getElementById('weekly-picks-panel');
         if (!picksContainer) return;
@@ -597,8 +598,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.getElementById('promo-quiz-start-btn').onclick = () => startQuiz(quizPanel);
     };
+    
+    // --- BAŞLANGIÇ YÖNETİMİ ---
+    const handleInitialLoad = () => {
+        if (checkForSharedLink()) {
+            return;
+        }
 
-    // --- UYGULAMA BAŞLANGIÇ NOKTASI ---
+        const path = window.location.pathname;
+        let pageIdToLoad = 'home-page';
+
+        if (path && path !== '/' && path !== '/index.html') {
+            const potentialId = path.substring(1) + '-page';
+            if (pages[potentialId]) {
+                pageIdToLoad = potentialId;
+            }
+        }
+        showPage(pageIdToLoad);
+    };
+
     const init = () => {
         loadData();
 
@@ -653,8 +671,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         navigator.serviceWorker.register('./servis-calisani.js').then(reg => console.log('Servis Çalışanı kaydedildi.')).catch(err => console.log('Servis Çalışanı hatası:', err));
                     });
                 }
-
-                // YENİ: Sayfa ilk yüklendiğinde URL'yi kontrol edip doğru sayfayı gösteren fonksiyon
+                
                 handleInitialLoad();
             })
             .catch(error => {
@@ -662,25 +679,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const resultsList = document.getElementById('results-list');
                 if(resultsList) resultsList.innerHTML = '<p style="text-align:center; padding: 20px; color: red;">Parfüm veritabanı yüklenemedi. Dosyaların doğru yerde olduğundan emin olun.</p>';
             });
-    };
-
-    // YENİ: Sayfa ilk yüklendiğinde veya yenilendiğinde URL'yi doğru yorumlayan fonksiyon
-    const handleInitialLoad = () => {
-        if (checkForSharedLink()) {
-            return; 
-        }
-
-        const path = window.location.pathname;
-        let pageIdToLoad = 'home-page';
-
-        if (path && path !== '/' && path !== '/index.html') {
-             // /my-lists -> my-lists-page
-            const potentialId = path.substring(1) + '-page';
-            if (pages[potentialId]) {
-                pageIdToLoad = potentialId;
-            }
-        }
-        showPage(pageIdToLoad);
     };
 
     init();

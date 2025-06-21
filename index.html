@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Parfüm Küratörü</title>
+    
+    <link rel="icon" href="icon-192.png" type="image/png">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#D4AF37">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital@1&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css?v=1.1">
+</head>
+<body>
+
+    <div id="welcome-panel">
+        <div id="desktop-sidebar-left" class="desktop-sidebar">
+            </div>
+
+        <div id="app-container">
+            <div class="header-container">
+                <h1>Parfüm Küratörü</h1>
+                <button id="theme-toggle-button">🌙</button>
+            </div>
+
+            <nav id="bottom-nav">
+                <button id="nav-home" class="active">🔍<br class="mobile-only"> Ana Sayfa</button>
+                <button id="nav-lists">📚<br class="mobile-only"> Listelerim</button>
+            </nav>
+
+            <div id="page-content">
+                <div id="home-page" class="page active">
+                    <div id="filter-area">
+                        <input type="text" id="search-input" placeholder="Parfüm, nota, hikaye ara...">
+                        <select id="gender-select"></select>
+                        <select id="season-select"></select>
+                        <select id="usage-select"></select>
+                        <select id="scent-type-select"></select>
+                        <select id="sort-select">
+                            <option value="a-z">İsme Göre (A-Z)</option>
+                            <option value="z-a">İsme Göre (Z-A)</option>
+                            <option value="star-desc">Yıldıza Göre (En Yüksek)</option>
+                            <option value="star-asc">Yıldıza Göre (En Düşük)</option>
+                        </select>
+                        <button id="search-button" class="styled-button primary-button">✨ Koku Avına Başla</button>
+                        <button id="surprise-button" class="styled-button secondary-button">🎲 Beni Şaşırt!</button>
+                        <button id="start-quiz-button" class="styled-button primary-button">🧬 Sana Uygun Parfümü Bul</button>
+                    </div>
+                    <div id="results-list"></div>
+                    <footer class="contact-footer">
+                        <p>Bize Ulaşın: 
+                            <a href="https://www.instagram.com/parfumkuratoru" target="_blank">Instagram</a> | 
+                            <a href="mailto:parfumkuratoru@gmail.com">parfumkuratoru@gmail.com</a>
+                        </p>
+                        <p>© 2025 Parfüm Küratörü. Tüm hakları saklıdır.</p>
+                    </footer>
+                </div>
+                <div id="my-lists-page" class="page"></div>
+                <div id="detail-page" class="page">
+                    <div class="header">
+                        <button class="back-button action-button">&lt; Geri</button>
+                        <div class="header-icons">
+                            <button class="share-button action-button" title="Paylaş"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg></button>
+                            <button id="detail-fav-button" class="action-button" title="Favorilere Ekle">★</button>
+                            <button id="add-to-list-button" class="action-button" title="Listeye Ekle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg></button>
+                        </div>
+                    </div>
+                    <div class="content">
+                        <h2 class="perfume-title">Parfüm Adı</h2>
+                        <p class="perfume-stars"></p>
+                        <hr class="section-divider">
+                        <div class="section"> <h4>--- His (Vibe) ---</h4> <p class="vibe"></p> </div>
+                        <hr class="section-divider">
+                        <div class="section"> <h4>--- Hikayesi ---</h4> <p class="story"></p> </div>
+                        <hr class="section-divider">
+                        <div class="section"> <h4>--- Notalar ---</h4> <div class="notes"></div> </div>
+                        <hr class="section-divider">
+                        <div class="section">
+                            <h4>--- Kişisel Notlarım ---</h4>
+                            <textarea id="personal-note-input" placeholder="Bu parfümle ilgili düşüncelerin..."></textarea>
+                            <div class="save-note-container"> <button id="save-note-button" class="styled-button primary-button">Notu Kaydet</button> </div>
+                        </div>
+                        <div class="save-note-container">
+                            <button id="online-search-button" class="styled-button secondary-button">🛍️ Online Ara & Fiyatları Karşılaştır</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="quiz-page" class="page"></div>
+                <div id="quiz-results-page" class="page"></div>
+            </div>
+        </div>
+
+        <div id="desktop-sidebar-right" class="desktop-sidebar">
+            </div>
+        
+        <div id="toast-notification"></div>
+        <div id="add-to-list-modal" class="modal-overlay">
+            <div class="modal-content">
+                <h4>Bir Listeye Ekle</h4>
+                <div id="modal-list-container"></div>
+                <button id="close-modal-button" class="styled-button secondary-button">Kapat</button>
+            </div>
+        </div>
+    </div>
+    
+    <main id="main-content">
+        <div id="quiz-promo-panel" class="frosted-panel">
+            </div>
+        <div id="weekly-picks-panel" class="frosted-panel">
+            </div>
+    </main>
+
+    <footer id="global-footer">
+        <p>Bize Ulaşın: 
+            <a href="https://www.instagram.com/parfumkuratoru" target="_blank">Instagram</a> | 
+            <a href="mailto:parfumkuratoru@gmail.com">parfumkuratoru@gmail.com</a>
+        </p>
+        <p>© 2025 Parfüm Küratörü. Tüm hakları saklıdır.</p>
+    </footer>
+    
+    <script defer type="module" src="app.js?v=2.0"></script>
+</body>
+</html>

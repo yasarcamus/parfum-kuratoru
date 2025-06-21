@@ -40,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveNotes = () => localStorage.setItem('perfumePersonalNotes', JSON.stringify(personalNotes));
 
     // --- SAYFA YÖNETİMİ ---
+    // DEĞİŞTİ: URL'yi # olmadan, temiz bir şekilde güncelliyoruz.
     const showPage = (pageId, fromHistory = false) => {
         if (currentPage !== 'detail-page' && !fromHistory) {
             lastPage = currentPage;
@@ -55,9 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
             navButtons[pageId].classList.add('active');
         }
 
-        // DEĞİŞTİ: URL'yi # olmadan, temiz bir şekilde güncelliyoruz.
         if (!fromHistory) {
-            // Ana sayfa için URL yolu '/', diğerleri için /sayfa-adi şeklinde olacak.
             const newPath = (pageId === 'home-page') ? '/' : `/${pageId.replace('-page', '')}`;
             
             if (isInitialLoad) {
@@ -109,7 +108,8 @@ document.addEventListener('DOMContentLoaded', () => {
         page.querySelector('#personal-note-input').value = personalNotes[perfumeName] || '';
         page.querySelector('#save-note-button').onclick = () => saveNote(perfumeName);
         page.querySelector('.share-button').onclick = () => sharePerfume(perfumeName);
-        page.querySelector('.back-button').onclick = () => history.back(); // Geri tuşu artık tarayıcı geçmişini kullanmalı
+        // DEĞİŞTİ: Geri tuşu artık tarayıcı geçmişini kullanmalı
+        page.querySelector('.back-button').onclick = () => history.back();
         page.querySelector('#online-search-button').onclick = () => {
             const searchQuery = encodeURIComponent(`${perfumeName} parfüm satın al`);
             window.open(`https://www.google.com/search?q=${searchQuery}`, '_blank');
@@ -162,7 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
         page.appendChild(header);
         const perfumeList = userLists[listName];
         const perfumeContainer = document.createElement('div');
-        perfumeContainer.id = 'results-list'; // Aynı stili kullanmak için ID ekleyelim
+        perfumeContainer.id = 'results-list';
         page.appendChild(perfumeContainer);
         if (perfumeList && perfumeList.length > 0) {
             perfumeList.forEach(perfumeName => {
@@ -509,14 +509,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const checkForSharedLink = () => {
         const path = window.location.pathname;
         if (path.startsWith('/perfume/')) {
-            // /perfume/Some_Perfume_Name -> Some Perfume Name
             const perfumeName = decodeURIComponent(path.substring('/perfume/'.length).replace(/_/g, ' '));
-            if (parfum_veritabani[perfumeName]) {
+            // Veritabanı yüklendi mi diye kontrol edelim
+            if (Object.keys(parfum_veritabani).length > 0 && parfum_veritabani[perfumeName]) {
                 renderDetailPage(perfumeName);
-                return true; // Paylaşım linki bulundu ve işlendi.
+                return true;
+            } else if (Object.keys(parfum_veritabani).length === 0) {
+                // Veritabanı henüz yüklenmemişse, bu kontrolü daha sonraya erteleyebiliriz.
+                // Şimdilik sadece bir işaretçi bırakalım.
+                return 'wait_for_db';
             }
         }
-        return false; // Paylaşım linki bulunamadı.
+        return false;
     };
     
     const filterPerfumes = () => {
@@ -598,13 +602,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const init = () => {
         loadData();
 
-        // DEĞİŞTİ: Tarayıcı geçmişinde ileri/geri yapıldığında doğru sayfayı yüklüyoruz.
         window.addEventListener('popstate', (event) => {
             if (event.state && event.state.page) {
-                showPage(event.state.page, true); // true parametresi, bunun bir geçmiş navigasyonu olduğunu belirtir.
+                showPage(event.state.page, true);
             } else {
-                // Eğer state yoksa, bu genellikle ilk sayfa yüklemesi veya hash olmayan bir URL'ye geri dönüştür.
-                // Sayfayı URL'ye göre yeniden yönlendirebiliriz.
                 handleInitialLoad();
             }
         });
@@ -658,23 +659,23 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .catch(error => {
                 console.error('Veritabanı yüklenemedi:', error);
-                document.getElementById('results-list').innerHTML = '<p style="text-align:center; padding: 20px; color: red;">Parfüm veritabanı yüklenemedi. Dosyaların doğru yerde olduğundan emin olun.</p>';
+                const resultsList = document.getElementById('results-list');
+                if(resultsList) resultsList.innerHTML = '<p style="text-align:center; padding: 20px; color: red;">Parfüm veritabanı yüklenemedi. Dosyaların doğru yerde olduğundan emin olun.</p>';
             });
     };
 
     // YENİ: Sayfa ilk yüklendiğinde veya yenilendiğinde URL'yi doğru yorumlayan fonksiyon
     const handleInitialLoad = () => {
-        // Önce paylaşım linki var mı diye kontrol et, varsa öncelik onda.
         if (checkForSharedLink()) {
             return; 
         }
 
         const path = window.location.pathname;
-        let pageIdToLoad = 'home-page'; // Varsayılan sayfa
+        let pageIdToLoad = 'home-page';
 
-        if (path && path !== '/') {
-            // /my-lists -> my-lists-page
-            const potentialId = path.substring(1).replace(/-/g, ' ') + '-page';
+        if (path && path !== '/' && path !== '/index.html') {
+             // /my-lists -> my-lists-page
+            const potentialId = path.substring(1) + '-page';
             if (pages[potentialId]) {
                 pageIdToLoad = potentialId;
             }
